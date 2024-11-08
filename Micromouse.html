@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Maze Game</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+        #info {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="mazeCanvas" width="400" height="400"></canvas>
+    <div id="info"></div> <!-- Display path length information here -->
+    <script>
+        const canvas = document.getElementById("mazeCanvas");
+        const ctx = canvas.getContext("2d");
+        const rows = 10;
+        const cols = 10;
+        const cellSize = canvas.width / cols;
+        const infoDisplay = document.getElementById("info");
+
+        // Initialize the maze: 0 = path, 1 = obstacle
+        let maze = Array.from(Array(rows), () => Array(cols).fill(0));
+        
+        // Start and end points
+        const start = [0, 0];
+        const end = [rows - 1, cols - 1];
+
+        // Draw the maze grid
+        function drawMaze() {
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < cols; col++) {
+                    ctx.fillStyle = maze[row][col] === 1 ? "black" : "white";
+                    ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+                    ctx.strokeRect(col * cellSize, row * cellSize, cellSize, cellSize);
+                }
+            }
+            // Draw the start and end points
+            ctx.fillStyle = "green";
+            ctx.fillRect(start[1] * cellSize, start[0] * cellSize, cellSize, cellSize);
+            ctx.fillStyle = "red";
+            ctx.fillRect(end[1] * cellSize, end[0] * cellSize, cellSize, cellSize);
+        }
+
+        // Toggle obstacle on mouse click
+        canvas.addEventListener("click", function (event) {
+            const x = event.offsetX;
+            const y = event.offsetY;
+            const col = Math.floor(x / cellSize);
+            const row = Math.floor(y / cellSize);
+
+            // Ensure start and end points are not toggled
+            if ((row !== start[0] || col !== start[1]) && (row !== end[0] || col !== end[1])) {
+                maze[row][col] = maze[row][col] === 0 ? 1 : 0;
+                drawMaze();
+            }
+        });
+
+        // Breadth-First Search to find the shortest path and count cells
+        function bfsShortestPath() {
+            const queue = [[start]];
+            const visited = Array.from(Array(rows), () => Array(cols).fill(false));
+            visited[start[0]][start[1]] = true;
+
+            while (queue.length > 0) {
+                const path = queue.shift();
+                const [row, col] = path[path.length - 1];
+
+                // Reached the end
+                if (row === end[0] && col === end[1]) {
+                    drawPath(path);
+                    infoDisplay.innerHTML = `Path Length: ${path.length - 1} cells`;
+                    return;
+                }
+
+                // Explore neighbors
+                const directions = [
+                    [0, 1], [1, 0], [0, -1], [-1, 0]
+                ];
+                for (const [dRow, dCol] of directions) {
+                    const newRow = row + dRow;
+                    const newCol = col + dCol;
+
+                    if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols &&
+                        !visited[newRow][newCol] && maze[newRow][newCol] === 0) {
+                        visited[newRow][newCol] = true;
+                        queue.push([...path, [newRow, newCol]]);
+                    }
+                }
+            }
+            infoDisplay.innerHTML = "No path found!";
+        }
+
+        // Draw the shortest path
+        function drawPath(path) {
+            for (const [row, col] of path) {
+                ctx.fillStyle = "yellow";
+                ctx.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
+            }
+            // Redraw start and end points to maintain visibility
+            ctx.fillStyle = "green";
+            ctx.fillRect(start[1] * cellSize, start[0] * cellSize, cellSize, cellSize);
+            ctx.fillStyle = "red";
+            ctx.fillRect(end[1] * cellSize, end[0] * cellSize, cellSize, cellSize);
+        }
+
+        // Run BFS on spacebar press
+        document.addEventListener("keydown", function (event) {
+            if (event.code === "Space") {
+                bfsShortestPath();
+            }
+        });
+
+        // Initial draw
+        drawMaze();
+    </script>
+</body>
+</html>
